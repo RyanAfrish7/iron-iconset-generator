@@ -1,0 +1,21 @@
+{
+  "name": "iron-iconset-generator",
+  "version": "0.0.0",
+  "description": "Generates iron-iconset from custom SVG files",
+  "main": "index.html",
+  "scripts": {
+    "serve:dev": "polymer serve"
+  },
+  "keywords": [
+    "polymer",
+    "iron-icons"
+  ],
+  "author": "Afrish Khan S <ryanafrish7@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "polymer-cli": "^1.9.7"
+  },
+  "dependencies": {
+    "lit-element": "^2.0.1"
+  }
+}
