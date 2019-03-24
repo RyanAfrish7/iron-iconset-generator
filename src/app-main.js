@@ -71,7 +71,28 @@ class AppMain extends LitElement {
                     display: inline-flex;
                     flex-direction: column;
                     align-items: center;
-                    padding: 14px;
+                    margin: 7px;
+                    width: 100px;
+                    padding: 7px;
+                    border-radius: 7px;
+                }
+
+                div.icon:focus-within {
+                    outline: none;
+                    background-color: #efefef;
+                }
+
+                div.editable {
+                    margin: 7px 0;
+                    border: 1px solid transparent;
+                    padding: 0 4px;
+                    text-align: center;
+                }
+
+                div.editable[contenteditable]:focus {
+                    outline: none;
+                    border: 1px solid black;
+                    background-color: white;
                 }
 
                 [hidden] {
@@ -101,9 +122,15 @@ class AppMain extends LitElement {
 
     renderIcon(icon) {
         return html`
-            <div class="icon">
+            <div class="icon" tabindex="0" @keydown=${event => { 
+                if(event.key === "F2") {
+                    this.edit(event.path.find(element => element.matches(".icon")).querySelector(".editable"), icon);
+                }
+            }}>
                 <img width="48px" height="48px" src=${"data:image/svg+xml;base64, " + btoa(icon.svgContent)} />
-                <div style="font-size: 11px">${icon.name}</div>
+                <div class="editable" style="font-size: 11px; max-width: 100%" @dblclick=${ event => { 
+                    this.edit(event.path.find(element => element.matches(".editable")), icon); 
+                }}>${icon.name}</div>
             </div>
         `;
     }
@@ -144,6 +171,49 @@ class AppMain extends LitElement {
             
             this.iconCollection = [ ...this.iconCollection, ...loadedIcons ];
         });
+    }
+
+    edit(editableDiv, icon) {
+        let onKeyDown, onKeyUp, onBlur;
+
+        const stopEditing = () => {
+            editableDiv.removeEventListener("keydown", onKeyDown);
+            editableDiv.removeEventListener("keyup", onKeyUp);
+            editableDiv.removeEventListener("blur", onBlur);
+            editableDiv.removeAttribute("contenteditable");
+        };
+
+        const commit = () => {
+            icon.name = editableDiv.innerText;
+            stopEditing();
+        };
+
+        const discard = () => {
+            editableDiv.innerText = icon.name;
+            stopEditing();
+        }
+
+        editableDiv.addEventListener("keydown", onKeyDown = (event) => {
+            if (event.key === "Enter") {
+                commit();
+                editableDiv.closest(".icon").focus();
+                event.stopImmediatePropagation();
+                event.preventDefault();
+            }
+        });
+
+        editableDiv.addEventListener("keyup", onKeyUp = (event) => {
+            if (event.key === "Escape") {
+                editableDiv.closest(".icon").focus();
+                discard();
+            }
+        });
+
+        editableDiv.addEventListener("blur", onBlur = () => {
+            commit();
+        });
+        editableDiv.setAttribute("contenteditable", true);
+        editableDiv.focus();
     }
 }
 
