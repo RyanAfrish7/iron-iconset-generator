@@ -17,6 +17,32 @@ const readFileAsText = (inputFile) => {
     });
 };
 
+export function generateIconsetFromSvgCollection(collection, collectionName) {
+    const domParser = new DOMParser();
+
+    return `
+        import '@polymer/iron-icon/iron-icon.js';
+        import '@polymer/iron-iconset-svg/iron-iconset-svg.js';
+
+        import {html} from '@polymer/polymer/lib/utils/html-tag.js';
+
+        const template = html\`<iron-iconset-svg name="${collectionName}" size="24">
+        <svg><defs>${
+            collection
+                .map(icon => {
+                    const svgDoc = domParser.parseFromString(icon.svgContent, "image/svg+xml");
+                    const g = svgDoc.createElement("g");
+                    Array.from(svgDoc.rootElement.children).forEach(g.appendChild.bind(g));
+                    g.id = icon.name;
+                    return g.outerHTML;
+                })
+                .reduce((a, x) => `${a}\n${x}`)
+        }</defs></svg>
+        </iron-iconset-svg>\`;
+        document.head.appendChild(template.content);
+    `;
+}
+
 export async function processSvgFile(file) {
     const svg = await readFileAsText(file);
     const svgDoc = new DOMParser().parseFromString(svg, "image/svg+xml");

@@ -3,7 +3,7 @@ import { LitElement, html } from "lit-element";
 import "@polymer/iron-icon";
 import "@polymer/iron-icons";
 
-import { processSvgFile } from "./svg-processor";
+import { processSvgFile, generateIconsetFromSvgCollection } from "./svg-processor";
 
 class AppMain extends LitElement {
     static get properties() {
@@ -24,6 +24,10 @@ class AppMain extends LitElement {
                 }
 
                 #header {
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: space-between;
+                    align-items: center;
                     padding: 18px;
                 }
 
@@ -63,6 +67,33 @@ class AppMain extends LitElement {
                     height: 100%;
                     color: rgba(0, 0, 0, 0.54);
                     visibility: collapse;
+                }
+
+                button {
+                    background: transparent;
+                    border: 1px solid rgba(0, 0, 0, 0.42);
+                    color: rgba(0, 0, 0, 0.54);
+                    font-weight: 600;
+                    border-radius: 3px;
+                    padding: 3px 4px;
+                    height: fit-content;
+                    text-decoration: underline;
+                    text-decoration-color: transparent;
+                    cursor: pointer;
+                }
+
+                button:hover {
+                    text-decoration-color: rgba(0, 0, 0, 0.42);
+                }
+
+                button:focus {
+                    outline: none;
+                }
+
+                button:active {
+                    color: rgba(0, 0, 0, 0.42);
+                    text-decoration-color: rgba(0, 0, 0, 0.24);
+                    border-color: rgba(0, 0, 0, 0.24);
                 }
 
                 p.secondary {
@@ -109,6 +140,7 @@ class AppMain extends LitElement {
             </style>
             <div id="header">
                 <div class="title">Iron Iconset Generator</div>
+                <button @click=${this.generateIconset}">generate</button>
             </div>
             <div id="space">
                 <p class="secondary padded">
@@ -225,6 +257,23 @@ class AppMain extends LitElement {
         });
         editableDiv.setAttribute("contenteditable", true);
         editableDiv.focus();
+    }
+
+    generateIconset() {
+        const collectionName = prompt("Type the collection name");
+        const data = generateIconsetFromSvgCollection(this.iconCollection, collectionName);
+
+        let downloadLink = document.body.querySelector("a#download-link");
+        if (!downloadLink) {
+            downloadLink = document.createElement("a");
+            downloadLink.id = "download-link";
+            document.body.appendChild(downloadLink);
+        }
+
+        downloadLink.download = `${collectionName}.js`;
+        downloadLink.href = window.URL.createObjectURL(new Blob([data], { type: "text/javascript" }));
+
+        downloadLink.click();
     }
 }
 
