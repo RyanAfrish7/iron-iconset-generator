@@ -32,6 +32,14 @@ class AppMain extends LitElement {
                     font-weight: 400;
                 }
 
+                #footer {
+                    background: linear-gradient(to top, rgba(255, 255, 255, 0.99) 40%, rgba(255, 255, 255, 0.92));
+                    border-top: 1px solid rgba(0, 0, 0, 0.08);
+                    padding: 0 14px;
+                    position: sticky;
+                    bottom: 0;
+                }
+
                 #space {
                     position: relative;
                     flex-grow: 1;
@@ -117,6 +125,9 @@ class AppMain extends LitElement {
                     }</span>
                 </div>
             </div>
+            <div id="footer">
+                <p class="secondary">${this.iconCollection.length == 0 ? "No icons in the collection" : this.iconCollection.length === 1 ? "One icon in the collection" : `${this.iconCollection.length} icons in the collection` }</p>
+            </div>
         `;
     }
 
@@ -127,7 +138,7 @@ class AppMain extends LitElement {
                     this.edit(event.path.find(element => element.matches(".icon")).querySelector(".editable"), icon);
                 }
             }}>
-                <img width="48px" height="48px" src=${"data:image/svg+xml;base64, " + btoa(icon.svgContent)} />
+                <img draggable="false" width="48px" height="48px" src=${"data:image/svg+xml;base64, " + btoa(icon.svgContent)} />
                 <div class="editable" style="font-size: 11px; max-width: 100%" @dblclick=${ event => { 
                     this.edit(event.path.find(element => element.matches(".editable")), icon); 
                 }}>${icon.name}</div>
@@ -141,7 +152,7 @@ class AppMain extends LitElement {
         this.iconCollection = [];
 
         ["dragenter", "dragover", "dragleave", "drop"]
-            .forEach(eventName => this.addEventListener(eventName, (event) => event.preventDefault(), false));
+            .forEach(eventName => this.addEventListener(eventName, (event) => { event.preventDefault(); event.stopPropagation() }, false));
 
         const onDrag = (event) => {
             this.shadowRoot.querySelector("#dragdropoverlay").style.visibility = "visible";
