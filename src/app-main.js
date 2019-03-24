@@ -3,10 +3,13 @@ import { LitElement, html } from "lit-element";
 import "@polymer/iron-icon";
 import "@polymer/iron-icons";
 
+import { processSvgFile } from "./svg-processor";
+
 class AppMain extends LitElement {
     static get properties() {
         return {
-            filesBeingDraggedIntoCount: { type: Number }
+            filesBeingDraggedIntoCount: { type: Number },
+            iconCollection: { type: Array },
         };
     }
     
@@ -64,6 +67,13 @@ class AppMain extends LitElement {
                     text-decoration: underline;
                 }
 
+                div.icon {
+                    display: inline-flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding: 14px;
+                }
+
                 [hidden] {
                     display: none;
                 }
@@ -76,8 +86,8 @@ class AppMain extends LitElement {
                     Drag & drop one or more SVG files or <span class="clickable" @click=${() => this.shadowRoot.querySelector('#fileinput').click()}>alternatively click here to open the file chooser</span>
                 </p>
                 <input type="file" id="fileinput" hidden multiple>
-                <div id="collection">
-                    
+                <div id="icon-collection">
+                    ${this.iconCollection.map(this.renderIcon.bind(this))}
                 </div>
                 <div id="dragdropoverlay">
                     <iron-icon icon="icons:add-circle-outline" style="width: 48px; height: 48px"></iron-icon>
@@ -89,11 +99,22 @@ class AppMain extends LitElement {
         `;
     }
 
+    renderIcon(icon) {
+        return html`
+            <div class="icon">
+                <img width="48px" height="48px" src=${"data:image/svg+xml;base64, " + btoa(icon.svgContent)} />
+                <div style="font-size: 11px">${icon.name}</div>
+            </div>
+        `;
+    }
+
     constructor() {
         super();
 
+        this.iconCollection = [];
+
         ["dragenter", "dragover", "dragleave", "drop"]
-            .forEach(eventName => this.addEventListener(eventName, (event) => event.preventDefault()));
+            .forEach(eventName => this.addEventListener(eventName, (event) => event.preventDefault(), false));
 
         const onDrag = (event) => {
             this.shadowRoot.querySelector("#dragdropoverlay").style.visibility = "visible";
@@ -108,8 +129,20 @@ class AppMain extends LitElement {
         this.addEventListener("dragleave", () => {
             this.shadowRoot.querySelector("#dragdropoverlay").style.visibility = "hidden";
         });
-        this.addEventListener("drop", (event) => {
+        this.addEventListener("drop", async (event) => {
             this.shadowRoot.querySelector("#dragdropoverlay").style.visibility = "hidden";
+            
+            const loadedIcons = await Promise.all(Array.from(event.dataTransfer.files)
+                .filter(file => file.type === "image/svg+xml")
+                .map(async file => {
+                    return {
+                        name: file.name.replace(/.svg$/, ""),
+                        svgContent: await processSvgFile(file),
+                        file
+                    };
+                }));
+            
+            this.iconCollection = [ ...this.iconCollection, ...loadedIcons ];
         });
     }
 }
