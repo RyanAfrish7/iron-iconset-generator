@@ -14,6 +14,15 @@ class AppMain extends LitElement {
     }
     
     render() {
+        const onFilesChanged = () => {
+            const fileInput = this.shadowRoot.querySelector("#fileinput");
+            if (fileInput.files.length > 0) {
+                this.consumeFiles(fileInput.files);
+            }
+
+            fileInput.value = null;
+        };
+
         return html`
             <style>
                 :host {
@@ -96,6 +105,12 @@ class AppMain extends LitElement {
                     border-color: rgba(0, 0, 0, 0.24);
                 }
 
+                button[disabled] {
+                    color: rgba(0, 0, 0, 0.24);
+                    text-decoration-color: transparent;
+                    border-color: rgba(0, 0, 0, 0.1);
+                }
+
                 p.secondary {
                     color: rgba(0, 0, 0, 0.54);
                     font-size: 12px;
@@ -140,15 +155,18 @@ class AppMain extends LitElement {
             </style>
             <div id="header">
                 <div class="title">Iron Iconset Generator</div>
-                <button @click=${this.generateIconset}">generate</button>
+                <button @click=${this.generateIconset}" ?disabled=${this.iconCollection.length == 0}>generate</button>
             </div>
             <div id="space">
                 <p class="secondary padded">
-                    Drag & drop one or more SVG files or <span class="clickable" @click=${() => this.shadowRoot.querySelector('#fileinput').click()}>alternatively click here to open the file chooser</span>
+                    Drag & drop one or more SVG files or 
+                    <span class="clickable" @click=${() => this.shadowRoot.querySelector('#fileinput').click()}>
+                        alternatively click here to open the file chooser
+                    </span>
                 </p>
-                <input type="file" id="fileinput" hidden multiple>
+                <input type="file" id="fileinput" accept=".svg" @change=${onFilesChanged} hidden multiple>
                 <div id="icon-collection">
-                    ${this.iconCollection.map(this.renderIcon.bind(this))}
+                    ${this.iconCollection.map(icon => this.renderIcon(icon))}
                 </div>
                 <div id="dragdropoverlay">
                     <iron-icon icon="icons:add-circle-outline" style="width: 48px; height: 48px"></iron-icon>
@@ -189,7 +207,7 @@ class AppMain extends LitElement {
         const onDrag = (event) => {
             this.shadowRoot.querySelector("#dragdropoverlay").style.visibility = "visible";
 
-            this.filesBeingDraggedIntoCount = Array.from(event.dataTransfer.items)
+            this.filesBeingDraggedIntoCount = [...event.dataTransfer.items]
                 .filter(x => x.kind === "file" && x.type === "image/svg+xml")
                 .length;
         }
@@ -199,20 +217,10 @@ class AppMain extends LitElement {
         this.addEventListener("dragleave", () => {
             this.shadowRoot.querySelector("#dragdropoverlay").style.visibility = "hidden";
         });
-        this.addEventListener("drop", async (event) => {
+        this.addEventListener("drop", (event) => {
             this.shadowRoot.querySelector("#dragdropoverlay").style.visibility = "hidden";
             
-            const loadedIcons = await Promise.all(Array.from(event.dataTransfer.files)
-                .filter(file => file.type === "image/svg+xml")
-                .map(async file => {
-                    return {
-                        name: file.name.replace(/.svg$/, ""),
-                        svgContent: await processSvgFile(file),
-                        file
-                    };
-                }));
-            
-            this.iconCollection = [ ...this.iconCollection, ...loadedIcons ];
+            this.consumeFiles(event.dataTransfer.files);
         });
     }
 
@@ -274,6 +282,23 @@ class AppMain extends LitElement {
         downloadLink.href = window.URL.createObjectURL(new Blob([data], { type: "text/javascript" }));
 
         downloadLink.click();
+    }
+
+    async consumeFiles(files) {
+        this.iconCollection = [ 
+            ...this.iconCollection, 
+            ...await Promise.all(
+                [...files]
+                    .filter(file => file.type === "image/svg+xml")
+                    .map(async file => {
+                        return {
+                            name: file.name.replace(/.svg$/, ""),
+                            svgContent: await processSvgFile(file),
+                            file
+                        };
+                    })
+            )
+        ];
     }
 }
 
